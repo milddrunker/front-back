@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle2, Circle, Cloud, CloudOff, Loader2, Database } from "lucide-react"
+import { CheckCircle2, Circle, Cloud, CloudOff, Loader2, Database, LogOut, User } from "lucide-react"
 import { supabase, type Database as DatabaseType } from "./lib/supabase"
+import { getUserTasks, updateUserTask, type User } from "./lib/auth"
 
-type Task = DatabaseType["public"]["Tables"]["tasks"]["Row"]
+type Task = DatabaseType["public"]["Tables"]["user_tasks"]["Row"]
 
 interface TaskGroup {
   title: string
@@ -15,6 +16,11 @@ interface TaskGroup {
 
 type ConnectionStatus = "connecting" | "connected" | "error" | "needs-setup"
 
+interface TaskListProps {
+  currentUser: User
+  onLogout: () => void
+}
+
 // 默认任务数据（当需要初始化时使用）
 const defaultTaskGroups: TaskGroup[] = [
   {
@@ -22,6 +28,7 @@ const defaultTaskGroups: TaskGroup[] = [
     tasks: [
       {
         id: "1-1",
+        user_id: "",
         group_title: "第一阶段：准备与规划",
         task_text: "用10分钟，列出对报告的所有疑问（不求完美，目标是头脑风暴）",
         completed: false,
@@ -32,6 +39,7 @@ const defaultTaskGroups: TaskGroup[] = [
       },
       {
         id: "1-2",
+        user_id: "",
         group_title: "第一阶段：准备与规划",
         task_text: "创建一个简单的报告大纲，确定需要分析的关键维度",
         completed: false,
@@ -42,6 +50,7 @@ const defaultTaskGroups: TaskGroup[] = [
       },
       {
         id: "1-3",
+        user_id: "",
         group_title: "第一阶段：准备与规划",
         task_text: "安排15分钟与主管沟通，确认报告范围和期望（记住：提问是专业的表现，不是能力不足）",
         completed: false,
@@ -57,6 +66,7 @@ const defaultTaskGroups: TaskGroup[] = [
     tasks: [
       {
         id: "2-1",
+        user_id: "",
         group_title: "第二阶段：数据收集",
         task_text: "为每个产品分配30分钟，收集基本信息（使用番茄工作法，每30分钟休息5分钟）",
         completed: false,
@@ -67,6 +77,7 @@ const defaultTaskGroups: TaskGroup[] = [
       },
       {
         id: "2-2",
+        user_id: "",
         group_title: "第二阶段：数据收集",
         task_text: "咨询产品部门获取数据或测试（记住：团队合作是工作的一部分）",
         completed: false,
@@ -82,6 +93,7 @@ const defaultTaskGroups: TaskGroup[] = [
     tasks: [
       {
         id: "3-1",
+        user_id: "",
         group_title: "第三阶段：分析与撰写",
         task_text: "创建比较表格，突出各产品的优缺点",
         completed: false,
@@ -92,6 +104,7 @@ const defaultTaskGroups: TaskGroup[] = [
       },
       {
         id: "3-2",
+        user_id: "",
         group_title: "第三阶段：分析与撰写",
         task_text: "撰写初稿（不求完美，目标是有一个可迭代的版本）",
         completed: false,
@@ -102,6 +115,7 @@ const defaultTaskGroups: TaskGroup[] = [
       },
       {
         id: "3-3",
+        user_id: "",
         group_title: "第三阶段：分析与撰写",
         task_text: "请一位信任的同事审阅并提供优化建议",
         completed: false,
@@ -112,6 +126,7 @@ const defaultTaskGroups: TaskGroup[] = [
       },
       {
         id: "3-4",
+        user_id: "",
         group_title: "第三阶段：分析与撰写",
         task_text: "根据反馈修改并完善报告",
         completed: false,
@@ -124,7 +139,7 @@ const defaultTaskGroups: TaskGroup[] = [
   },
 ]
 
-export default function Component() {
+export default function TaskList({ currentUser, onLogout }: TaskListProps) {
   const [taskGroups, setTaskGroups] = useState<TaskGroup[]>([])
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting")
   const [errorMessage, setErrorMessage] = useState<string>("")
@@ -136,7 +151,7 @@ export default function Component() {
     setIsSettingUpDatabase(true)
     try {
       // 检查是否有数据，如果没有则插入默认数据
-      const { data: existingTasks, error: selectError } = await supabase.from("tasks").select("id").limit(1)
+      const { data: existingTasks, error: selectError } = await supabase.from("user_tasks").select("id").limit(1)
 
       if (selectError && !selectError.message.includes("does not exist")) {
         throw selectError
@@ -146,6 +161,7 @@ export default function Component() {
       if (!existingTasks || existingTasks.length === 0) {
         const tasksToInsert = defaultTaskGroups.flatMap((group, groupIndex) =>
           group.tasks.map((task, taskIndex) => ({
+            user_id: currentUser.id,
             group_title: group.title,
             task_text: task.task_text,
             completed: false,
@@ -154,7 +170,7 @@ export default function Component() {
           })),
         )
 
-        const { error: insertError } = await supabase.from("tasks").insert(tasksToInsert)
+        const { error: insertError } = await supabase.from("user_tasks").insert(tasksToInsert)
 
         if (insertError) {
           throw insertError
@@ -175,29 +191,19 @@ export default function Component() {
     }
   }
 
-  // 从Supabase加载任务
+  // 从Supabase加载用户任务
   const loadTasks = async () => {
     try {
       setIsLoading(true)
       setConnectionStatus("connecting")
 
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .order("group_order", { ascending: true })
-        .order("task_order", { ascending: true })
+      const data = await getUserTasks(currentUser.id)
 
-      if (error) {
-        if (
-          error.message.includes("table") &&
-          (error.message.includes("does not exist") || error.message.includes("schema cache"))
-        ) {
-          setConnectionStatus("needs-setup")
-          setErrorMessage("数据库表不存在，需要初始化")
-          setTaskGroups(defaultTaskGroups)
-          return
-        }
-        throw error
+      if (!data || data.length === 0) {
+        setConnectionStatus("needs-setup")
+        setErrorMessage("用户任务不存在，需要初始化")
+        setTaskGroups(defaultTaskGroups)
+        return
       }
 
       // 按组分组任务
@@ -243,25 +249,17 @@ export default function Component() {
     }
 
     try {
-      const { error } = await supabase
-        .from("tasks")
-        .update({
-          completed: !currentStatus,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", taskId)
+      const success = await updateUserTask(taskId, !currentStatus)
 
-      if (error) {
-        throw error
+      if (success) {
+        // 更新本地状态
+        setTaskGroups((prevGroups) =>
+          prevGroups.map((group) => ({
+            ...group,
+            tasks: group.tasks.map((task) => (task.id === taskId ? { ...task, completed: !currentStatus } : task)),
+          })),
+        )
       }
-
-      // 更新本地状态
-      setTaskGroups((prevGroups) =>
-        prevGroups.map((group) => ({
-          ...group,
-          tasks: group.tasks.map((task) => (task.id === taskId ? { ...task, completed: !currentStatus } : task)),
-        })),
-      )
     } catch (error) {
       console.error("更新任务状态失败:", error)
       // 即使更新失败，也更新本地状态以提供更好的用户体验
@@ -277,7 +275,7 @@ export default function Component() {
   // 组件挂载时加载任务
   useEffect(() => {
     loadTasks()
-  }, [])
+  }, [currentUser.id])
 
   // 计算总进度
   const totalTasks = taskGroups.reduce((sum, group) => sum + group.tasks.length, 0)
@@ -307,15 +305,15 @@ export default function Component() {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2 text-orange-600">
               <Database className="w-4 h-4" />
-              <span className="text-sm">需要初始化数据库</span>
+              <span className="text-sm">需要初始化用户任务</span>
             </div>
-            <p className="text-xs text-orange-600">数据库表不存在，点击下方按钮创建</p>
+            <p className="text-xs text-orange-600">用户任务不存在，点击下方按钮创建</p>
             <button
               onClick={setupDatabase}
               disabled={isSettingUpDatabase}
               className="text-xs text-green-600 hover:text-green-800 underline disabled:opacity-50 mt-1"
             >
-              {isSettingUpDatabase ? "初始化中..." : "初始化数据库"}
+              {isSettingUpDatabase ? "初始化中..." : "初始化用户任务"}
             </button>
           </div>
         )
@@ -349,6 +347,26 @@ export default function Component() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
+        {/* 用户信息和登出按钮 */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <User className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">欢迎，{currentUser.username}！</h2>
+              <p className="text-sm text-gray-600">您的个人任务清单</p>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>登出</span>
+          </button>
+        </div>
+
         {/* 标题和进度 */}
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">报告任务清单</h1>

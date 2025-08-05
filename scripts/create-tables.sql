@@ -1,3 +1,31 @@
+-- 创建用户表（如果不存在）
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 去除用户表的RLS (Row Level Security) - Demo产品设置
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+
+-- 创建用户任务关联表（如果不存在）
+CREATE TABLE IF NOT EXISTS public.user_tasks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  group_title TEXT NOT NULL,
+  task_text TEXT NOT NULL,
+  completed BOOLEAN DEFAULT FALSE,
+  group_order INTEGER NOT NULL,
+  task_order INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 去除用户任务表的RLS (Row Level Security) - Demo产品设置
+ALTER TABLE public.user_tasks DISABLE ROW LEVEL SECURITY;
+
 -- 创建任务表（如果不存在）
 CREATE TABLE IF NOT EXISTS public.tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -24,10 +52,22 @@ $$ language 'plpgsql';
 
 -- 删除现有触发器（如果存在）
 DROP TRIGGER IF EXISTS update_tasks_updated_at ON public.tasks;
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
+DROP TRIGGER IF EXISTS update_user_tasks_updated_at ON public.user_tasks;
 
 -- 创建更新时间触发器
 CREATE TRIGGER update_tasks_updated_at 
     BEFORE UPDATE ON public.tasks 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_users_updated_at 
+    BEFORE UPDATE ON public.users 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_tasks_updated_at 
+    BEFORE UPDATE ON public.user_tasks 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 

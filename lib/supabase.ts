@@ -10,6 +10,64 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export type Database = {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string
+          username: string
+          password_hash: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          username: string
+          password_hash: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          username?: string
+          password_hash?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_tasks: {
+        Row: {
+          id: string
+          user_id: string
+          group_title: string
+          task_text: string
+          completed: boolean
+          group_order: number
+          task_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          group_title: string
+          task_text: string
+          completed?: boolean
+          group_order: number
+          task_order: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          group_title?: string
+          task_text?: string
+          completed?: boolean
+          group_order?: number
+          task_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       tasks: {
         Row: {
           id: string

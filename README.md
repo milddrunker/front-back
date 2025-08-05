@@ -1,30 +1,111 @@
-# Task list webpage
+# 报告任务清单应用
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+这是一个基于 Next.js 和 Supabase 的任务管理应用，帮助用户跟踪和管理报告相关的任务。
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/milddrunkers-projects/v0-task-list-webpage)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/HckvgD90o5J)
+## 功能特性
 
-## Overview
+### 用户认证
+- ✅ 用户注册和登录功能
+- ✅ 密码使用 MD5 加密存储（Demo 产品）
+- ✅ 会话管理（本地存储）
+- ✅ 用户登出功能
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+### 任务管理
+- ✅ 个人任务列表（每个用户独立的任务）
+- ✅ 任务完成状态切换
+- ✅ 实时进度显示
+- ✅ 云端数据同步
 
-## Deployment
+### 任务结构
+应用包含三个阶段的报告任务：
 
-Your project is live at:
+**第一阶段：准备与规划**
+- 用10分钟，列出对报告的所有疑问（不求完美，目标是头脑风暴）
+- 创建一个简单的报告大纲，确定需要分析的关键维度
+- 安排15分钟与主管沟通，确认报告范围和期望
 
-**[https://vercel.com/milddrunkers-projects/v0-task-list-webpage](https://vercel.com/milddrunkers-projects/v0-task-list-webpage)**
+**第二阶段：数据收集**
+- 为每个产品分配30分钟，收集基本信息（使用番茄工作法，每30分钟休息5分钟）
+- 咨询产品部门获取数据或测试
 
-## Build your app
+**第三阶段：分析与撰写**
+- 创建比较表格，突出各产品的优缺点
+- 撰写初稿（不求完美，目标是有一个可迭代的版本）
+- 请一位信任的同事审阅并提供优化建议
+- 根据反馈修改并完善报告
 
-Continue building your app on:
+## 技术栈
 
-**[https://v0.dev/chat/projects/HckvgD90o5J](https://v0.dev/chat/projects/HckvgD90o5J)**
+- **前端**: Next.js 14, React, TypeScript
+- **样式**: Tailwind CSS
+- **数据库**: Supabase (PostgreSQL)
+- **认证**: 自建用户系统（Demo 产品）
 
-## How It Works
+## 数据库结构
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+### 用户表 (users)
+- `id`: UUID 主键
+- `username`: 用户名（唯一）
+- `password_hash`: MD5 加密的密码
+- `created_at`: 创建时间
+- `updated_at`: 更新时间
+
+### 用户任务表 (user_tasks)
+- `id`: UUID 主键
+- `user_id`: 用户ID（外键）
+- `group_title`: 任务组标题
+- `task_text`: 任务描述
+- `completed`: 完成状态
+- `group_order`: 组排序
+- `task_order`: 任务排序
+- `created_at`: 创建时间
+- `updated_at`: 更新时间
+
+### 任务模板表 (tasks)
+- 存储默认任务模板，用于新用户初始化
+
+## 安装和运行
+
+1. 安装依赖：
+```bash
+npm install
+```
+
+2. 运行开发服务器：
+```bash
+npm run dev
+```
+
+3. 访问应用：
+打开浏览器访问 `http://localhost:3000`
+
+## 使用说明
+
+1. **首次访问**: 应用会显示登录/注册页面
+2. **注册新用户**: 输入用户名和密码，系统会自动为新用户初始化任务列表
+3. **登录**: 使用已注册的用户名和密码登录
+4. **管理任务**: 点击任务可以切换完成状态，进度会实时更新
+5. **登出**: 点击右上角的登出按钮可以退出登录
+
+## 数据库初始化
+
+应用首次运行时会自动创建必要的数据库表。如果需要手动初始化，可以运行：
+
+```sql
+-- 在 Supabase SQL 编辑器中运行 scripts/create-tables.sql
+```
+
+## 注意事项
+
+- 这是一个 Demo 产品，密码使用简单的 MD5 加密
+- 没有启用 RLS (Row Level Security)，适合演示使用
+- 用户会话存储在浏览器本地存储中
+- 每个用户都有独立的任务列表
+
+## 开发说明
+
+- 所有用户相关的任务都存储在 `user_tasks` 表中
+- 任务模板存储在 `tasks` 表中，用于新用户初始化
+- 用户认证完全自建，不依赖 Supabase Auth
+- 前端使用 React hooks 管理状态
+- 样式使用 Tailwind CSS 和 shadcn/ui 组件
