@@ -180,4 +180,4 @@ export const sessionManager = {
   isLoggedIn: (): boolean => {
     return sessionManager.getSession() !== null
   }
-} 
+}

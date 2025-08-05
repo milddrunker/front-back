@@ -115,4 +115,4 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
       </Card>
     </div>
   )
-} 
+}

@@ -67,14 +67,14 @@
 ## 安装和运行
 
 1. 安装依赖：
-```bash
+\`\`\`bash
 npm install
-```
+\`\`\`
 
 2. 运行开发服务器：
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 3. 访问应用：
 打开浏览器访问 `http://localhost:3000`
@@ -91,9 +91,9 @@ npm run dev
 
 应用首次运行时会自动创建必要的数据库表。如果需要手动初始化，可以运行：
 
-```sql
+\`\`\`sql
 -- 在 Supabase SQL 编辑器中运行 scripts/create-tables.sql
-```
+\`\`\`
 
 ## 注意事项
 
